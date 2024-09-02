@@ -48,8 +48,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if (voucher.getStock() < 1) {
             return Result.fail("库存已经没有了");
         }
+        //首先添加锁，给UserID加锁，确保用户一人一单，锁在方法外面是确保事务的完整性
         Long userId = UserHolder.getUser().getId();
         synchronized (userId.toString().intern()) {
+            //由于加锁是给this加锁，可能导致事务的锁失效，所以获取代理对象，使用代理对象
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
         }
