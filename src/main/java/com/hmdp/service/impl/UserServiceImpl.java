@@ -14,14 +14,18 @@ import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.RegexUtils;
 import com.hmdp.utils.SystemConstants;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpSession;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -98,6 +102,69 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //设置有效期半小时
         stringRedisTemplate.expire(RedisConstants.LOGIN_USER_KEY+token,RedisConstants.CACHE_SHOP_TTL,TimeUnit.MINUTES);
         return Result.ok(token);
+    }
+
+    /**
+     * 实现签到
+     * @return
+     */
+    @Override
+    public Result sign() {
+        //首先获取用户
+        Long userId = UserHolder.getUser().getId();
+        //获取日期
+        LocalDateTime now = LocalDateTime.now();
+        //将日期标准化
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyy/MM"));
+        String key = RedisConstants.USER_SIGN_KEY+userId+keySuffix;
+        //获取当天的天数
+        int dayOfMonth = now.getDayOfMonth();
+        stringRedisTemplate.opsForValue().setBit(key,dayOfMonth-1,true);
+        return Result.ok();
+    }
+
+    /**
+     * 连续签到天数计算
+     * @return
+     */
+    @Override
+    public Result signCount() {
+        //首先获取当前用户id
+        Long userId = UserHolder.getUser().getId();
+        LocalDateTime now = LocalDateTime.now();
+        //获取当前天数
+        int dayOfMonth = now.getDayOfMonth();
+        String keySufix = now.format(DateTimeFormatter.ofPattern(":yyyy/MM"));
+        String key = RedisConstants.USER_SIGN_KEY+userId+keySufix;
+        //使用redis的bitFeild查询
+        List<Long> res = stringRedisTemplate
+                .opsForValue()
+                .bitField(key,
+                        BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0));
+        //首先判断res的长度
+        if (res==null||res.isEmpty()){
+            return Result.ok(0);
+        }
+        //获取查询到的数据
+        Long days = res.get(0);
+        //需要进行判断
+        if (days==null||days == 0){
+            return Result.ok(0);
+        }
+        int count = 0;
+        //进行统计
+        while (true){
+            if ((days&1)==1){
+                //说明签到了
+                count++;
+            }else {
+                //没有签到
+                break;
+            }
+            //右移一位
+            days >>>=1;
+        }
+        return Result.ok(count);
     }
 
     private User createUserWithPhone(String phone) {
