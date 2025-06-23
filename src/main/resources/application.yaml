@@ -1,23 +1,25 @@
 server:
   port: 8081
 spring:
+  profiles:
+    active: prod
   application:
     name: hmdp
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/hmdp?useSSL=false&serverTimezone=UTC
-    username: root
-    password: 
+    driver-class-name: ${hmdp.datasource.driver-class-name}
+    url: ${hmdp.datasource.url}
+    username: ${hmdp.datasource.username}
+    password: ${hmdp.datasource.password}
   redis:
-    host: 127.0.0.1
-    port: 6379
-    password: 
+    host: ${hmdp.redis.host}
+    port: ${hmdp.redis.port}
+    password: ${hmdp.redis.password}
     lettuce:
       pool:
-        max-active: 10
-        max-idle: 10
-        min-idle: 1
-        time-between-eviction-runs: 10s
+        max-active: ${hmdp.redis.lettuce.pool.max-active}
+        max-idle: ${hmdp.redis.lettuce.pool.max-idle}
+        min-idle: ${hmdp.redis.lettuce.pool.min-idle}
+        time-between-eviction-runs: ${hmdp.redis.lettuce.pool.time-between-eviction-runs}
   jackson:
     default-property-inclusion: non_null # JSON处理时忽略非空字段
 mybatis-plus:

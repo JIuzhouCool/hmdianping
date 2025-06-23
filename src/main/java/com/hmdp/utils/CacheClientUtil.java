@@ -4,7 +4,6 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.hmdp.entity.Shop;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -17,7 +16,7 @@ import java.util.function.Function;
 
 @Component
 @Slf4j
-public class CacheClientUtil {
+class CacheClientUtil {
     private StringRedisTemplate stringRedisTemplate;
 
     public CacheClientUtil(StringRedisTemplate stringRedisTemplate) {

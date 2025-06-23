@@ -31,14 +31,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * <p>
- * 服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
+
 @Service
 @Slf4j
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
@@ -88,7 +81,29 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private static final ExecutorService SECKILL_ORDER_EXCUTOR = Executors.newSingleThreadExecutor();
     @PostConstruct
     private void init() {
+        // 创建一个线程任务
         SECKILL_ORDER_EXCUTOR.submit(new VoucherOrderHandeller());
+        
+        // 初始化Stream消费者组
+        try {
+            // 获取消费者组信息
+            StreamInfo.XInfoGroups groups = stringRedisTemplate.opsForStream().groups(queueName);
+            // 判断消费者组是否存在
+            boolean groupExists = groups.stream().anyMatch(group -> "g1".equals(group.groupName()));
+            if (!groupExists) {
+                // 不存在，则创建消费者组
+                stringRedisTemplate.opsForStream().createGroup(queueName, ReadOffset.latest(), "g1");
+                log.info("创建消费者组 g1 成功");
+            }
+        } catch (Exception e) {
+            // 可能是队列不存在，尝试创建队列和消费者组
+            try {
+                stringRedisTemplate.opsForStream().createGroup(queueName, ReadOffset.latest(), "g1");
+                log.info("创建消费者组 g1 成功");
+            } catch (Exception ex) {
+                log.error("创建消费者组异常", ex);
+            }
+        }
     }
     String queueName = "stream.orders";
     private class VoucherOrderHandeller implements Runnable {
@@ -166,8 +181,8 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if (result.intValue() != 0) {
             return Result.fail(result.intValue() == 1 ? "库存不足" : "不能重复下单");
         }
-
-        proxy = (IVoucherOrderService) AopContext.currentProxy();//由于加锁是给this加锁，可能导致事务的锁失效，所以获取代理对象，使用代理对象
+        //由于加锁是给this加锁，可能导致事务的锁失效，所以获取代理对象，使用代理对象
+        proxy = (IVoucherOrderService) AopContext.currentProxy();
         //返回订单id
         return Result.ok(orderId);
     }

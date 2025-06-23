@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.LoginFormDTO;
 import com.hmdp.dto.Result;
@@ -29,14 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/**
- * <p>
- * 服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
+
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
@@ -57,6 +51,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //解决多个tomcat共享问题，使用redis进行v存储 //设置有效期
         stringRedisTemplate.opsForValue().set(RedisConstants.LOGIN_CODE_KEY+ phone,code,RedisConstants.LOGIN_CODE_TTL, TimeUnit.MINUTES);
         //发送验证码
+        //添加发送验证码的服务
         log.info("假设发送验证码:{}",code);
         //返回ok
         return Result.ok();
@@ -81,7 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("验证码错误");
         }
         //根据mp提供的基础方法进行查询
-        User user = query().eq("phone", loginForm.getPhone()).one();
+        User user = lambdaQuery().eq(User::getPhone, loginForm.getPhone()).one();
         if(user == null){
             //不存在，创建用户
             user = createUserWithPhone(loginForm.getPhone());
