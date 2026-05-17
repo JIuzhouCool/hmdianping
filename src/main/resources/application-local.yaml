@@ -1,0 +1,17 @@
+hmdp:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: ${HMDP_DB_URL:jdbc:mysql://127.0.0.1:3306/hmdp?useSSL=false&serverTimezone=UTC}
+    username: ${HMDP_DB_USERNAME:root}
+    password: ${HMDP_DB_PASSWORD:}
+  redis:
+    host: ${HMDP_REDIS_HOST:127.0.0.1}
+    port: ${HMDP_REDIS_PORT:6379}
+    password: ${HMDP_REDIS_PASSWORD:}
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 1
+        time-between-eviction-runs: 10s
+
